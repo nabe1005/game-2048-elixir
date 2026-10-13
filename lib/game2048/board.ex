@@ -30,12 +30,8 @@ defmodule Game2048.Board do
   """
   @spec empty() :: t()
   def empty do
-    # TODO(human): 【ステップ2-1】0 が 4 個並んだ行が、4 行並んだリストを返してください。
-    #
-    # ■ ヒント
-    #   - ステップ1で使った List.duplicate/2 を2回使う方法と、for 内包表記を使う方法があります。
-    #   - 大きさは、モジュール属性 @size を使ってください（4 を直接書かない）。
-    Game2048.todo!("ステップ2-1 empty/0", [@size])
+    # for 内包表記の入れ子で、「0 が @size 個の行」を @size 行作っています。
+    for _n <- 1..@size, do: for(_n <- 1..@size, do: 0)
   end
 
   @doc """
@@ -48,48 +44,45 @@ defmodule Game2048.Board do
   """
   @spec transpose(t()) :: t()
   def transpose(board) do
-    # TODO(human): 【ステップ2-2】board の行と列を入れ替えたリストを返してください。
-    #
-    # ■ 使う関数
-    #   Enum.zip(リストのリスト)
-    #     各リストの「同じ位置の要素」を集めたタプルのリストを返します。
-    #       Enum.zip([[1, 2], [3, 4]]) #=> [{1, 3}, {2, 4}]
-    #     これで列ごとにまとめられますが、結果がタプルになります。
-    #   Tuple.to_list(タプル)
-    #     タプルをリストに変えます。    Tuple.to_list({1, 3}) #=> [1, 3]
-    #
-    # ■ ヒント
-    #   - Enum.zip の結果の各タプルを、Enum.map で Tuple.to_list すれば転置になります。
-    #   - ステップ1で紹介した `&Tuple.to_list/1` の書き方が使えます。
-    Game2048.todo!("ステップ2-2 transpose/1", [board])
+    # Enum.zip で列ごとのタプルにまとめ（[{1, 3}, {2, 4}]）、各タプルをリストに戻しています。
+    # TODO(human): 【改善】`&Tuple.to_list(&1)` は、もっと短いキャプチャの書き方にできます。
+    #   ヒント: 「関数名/引数の数」の形です。row.ex の compact/1 の説明も見てみてください。
+    board
+    |> Enum.zip()
+    |> Enum.map(&Tuple.to_list(&1))
   end
 
   @doc """
   盤面のタイルを、`direction` の方向にすべてスライドさせた盤面を返します。
+
+  どの方向も「左スライド」に置き換えています。
+  - `:right` は、各行を「反転 → 左スライド → 反転」
+  - `:up` は「転置 → 左 → 転置」、`:down` は「転置 → 右 → 転置」（転置すると、列が行になります）
   """
   @spec move(t(), direction()) :: t()
-  def move(board, direction) do
-    # TODO(human): 【ステップ2-3】この関数を、方向ごとの関数節4つに書き換えてください。
-    #   今の `def move(board, direction) do ... end` は消して、
-    #   def move(board, :left) do ... end のように、2つ目の引数にアトムを直接書いた節を4つ並べます。
-    #   （マインスイーパーの CLI で書いた apply_action/3 と同じ形です）
-    #
-    # ■ 考え方: どの方向も「左スライド」に置き換える
-    #   :left  → 各行を Row.slide_left/1 する
-    #   :right → 各行を「反転 → 左スライド → 反転」する
-    #              [2, 0, 0, 2] → 反転 [2, 0, 0, 2] → 左 [4, 0, 0, 0] → 反転 [0, 0, 0, 4]
-    #   :up    → 「転置 → 左に動かす → 転置」する（転置すると、列が行になります）
-    #   :down  → 「転置 → 右に動かす → 転置」する
-    #
-    # ■ 使う関数
-    #   Enum.map(list, 関数)      各行に同じ処理をする
-    #   Enum.reverse(list)        リストを反転する
-    #   transpose/1               ステップ2-2 で作った関数
-    #
-    # ■ ヒント
-    #   - :up と :down は、すでに作った move(board, :left) / move(board, :right) を呼んで使い回せます。
-    #   - パイプでつなぐと、「転置 → 動かす → 転置」がそのまま上から下に書けます。
-    Game2048.todo!("ステップ2-3 move/2", [board, direction])
+  def move(board, :left), do: for(row <- board, do: Row.slide_left(row))
+
+  def move(board, :right) do
+    for row <- board do
+      row
+      |> Enum.reverse()
+      |> Row.slide_left()
+      |> Enum.reverse()
+    end
+  end
+
+  def move(board, :up) do
+    board
+    |> transpose()
+    |> move(:left)
+    |> transpose()
+  end
+
+  def move(board, :down) do
+    board
+    |> transpose()
+    |> move(:right)
+    |> transpose()
   end
 
   # ---- ステップ3: 空きマスにランダムなタイルを置く ----
