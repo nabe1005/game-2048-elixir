@@ -45,11 +45,10 @@ defmodule Game2048.Board do
   @spec transpose(t()) :: t()
   def transpose(board) do
     # Enum.zip で列ごとのタプルにまとめ（[{1, 3}, {2, 4}]）、各タプルをリストに戻しています。
-    # TODO(human): 【改善】`&Tuple.to_list(&1)` は、もっと短いキャプチャの書き方にできます。
-    #   ヒント: 「関数名/引数の数」の形です。row.ex の compact/1 の説明も見てみてください。
+    # `&Tuple.to_list/1` は「Tuple.to_list という、引数1つの関数」をそのまま渡すキャプチャです。
     board
     |> Enum.zip()
-    |> Enum.map(&Tuple.to_list(&1))
+    |> Enum.map(&Tuple.to_list/1)
   end
 
   @doc """
@@ -96,20 +95,9 @@ defmodule Game2048.Board do
   """
   @spec empty_positions(t()) :: [position()]
   def empty_positions(board) do
-    # TODO(human): 【ステップ3-1】値が 0 のマスの座標 {x, y} をリストで返してください。順番は左上から右へ、上から下へ。
-    #
-    # ■ 使う関数
-    #   Enum.with_index(list)
-    #     各要素を {要素, 番号} のタプルにしたリストを返します。番号は 0 から始まります。
-    #       Enum.with_index([:a, :b]) #=> [{:a, 0}, {:b, 1}]
-    #
-    # ■ ヒント
-    #   - for 内包表記で二重ループにします。マインスイーパーの all_positions/2 と neighbors/1 を思い出してください。
-    #   - for の `<-` の左側にはパターンが書けます。
-    #       for {row, y} <- Enum.with_index(board), ... do
-    #     のように書くと、行と行番号を同時に取り出せます。
-    #   - 「値が 0 のときだけ」は、for のフィルタで書けます。
-    Game2048.todo!("ステップ3-1 empty_positions/1", [board])
+    # for の `<-` の左側にパターン {row, y} を書いて、行と行番号を同時に取り出しています。
+    # `num == 0` は for のフィルタで、true のときだけ {x, y} が結果に入ります。
+    for {row, y} <- Enum.with_index(board), {num, x} <- Enum.with_index(row), num == 0, do: {x, y}
   end
 
   @doc """
@@ -117,20 +105,8 @@ defmodule Game2048.Board do
   """
   @spec put_tile(t(), position(), pos_integer()) :: t()
   def put_tile(board, {x, y}, value) do
-    # TODO(human): 【ステップ3-2】y 行目の x 番目を value にした、新しい盤面を返してください。
-    #
-    # ■ 使う関数
-    #   List.replace_at(list, 番号, 値)
-    #     番号の位置を値に置き換えた、新しいリストを返します。
-    #       List.replace_at([1, 2, 3], 1, 9) #=> [1, 9, 3]
-    #   List.update_at(list, 番号, fn 古い値 -> 新しい値 end)
-    #     番号の位置の値を、関数で変換した新しいリストを返します（Map.update! のリスト版）。
-    #       List.update_at([1, 2, 3], 1, fn n -> n * 10 end) #=> [1, 20, 3]
-    #
-    # ■ ヒント
-    #   - マインスイーパーの put_state/3 と同じく、「内側から作り直す」2段階です。
-    #     「y 行目を取り出して更新する」のに List.update_at、「その行の x 番目を置き換える」のに List.replace_at を使います。
-    Game2048.todo!("ステップ3-2 put_tile/3", [board, x, y, value])
+    # y 行目を取り出して（List.update_at）、その行の x 番目を置き換えています（List.replace_at）。
+    List.update_at(board, y, &List.replace_at(&1, x, value))
   end
 
   @doc """
@@ -139,24 +115,31 @@ defmodule Game2048.Board do
   """
   @spec add_random_tile(t()) :: t()
   def add_random_tile(board) do
-    # TODO(human): 【ステップ3-3】空きマスがあれば、そのどれかにランダムなタイルを置いてください。
+    # :rand は Erlang のモジュールです。Erlang のモジュールは、先頭に `:` を付けたアトムで呼びます。
     #
-    # ■ 使う関数
-    #   Enum.random(list)
-    #     リストの要素を1つランダムに返します。
-    #   :rand.uniform(n)
-    #     1 から n までの整数をランダムに返します。:rand.uniform(10) なら 1〜10 です。
+    # 参考: case で書いた版
+    # case empty_positions(board) do
+    #   [] ->
+    #     board
     #
-    # ■ 新しい文法: Erlang のモジュールを呼ぶ
-    #   Elixir は Erlang という言語の仮想マシンの上で動いていて、Erlang のモジュールもそのまま呼べます。
-    #   Erlang のモジュールは、名前の先頭に `:` を付けたアトムで書きます（:rand, :math など）。
-    #     :math.sqrt(16) #=> 4.0
-    #
-    # ■ ヒント
-    #   - 空きマスのリストは、ステップ3-1 の empty_positions/1 で取れます。
-    #   - 「空きマスがない（空のリスト）」ときと「ある」ときで、case で振り分けると書きやすいです。
-    #   - 「90% で 2、10% で 4」は、:rand.uniform(10) の結果で if を使って決められます。
-    Game2048.todo!("ステップ3-3 add_random_tile/1", [board])
+    #   empties ->
+    #     empties
+    #     |> Enum.random()
+    #     |> then(&put_tile(board, &1, if(:rand.uniform(10) == 1, do: 4, else: 2)))
+    # end
+
+    # `[_ | _] = empties` は「要素が1つ以上のリスト」に一致させつつ、全体を empties に入れるパターンです。
+    # TODO(human): 【改善】with の2行目と3行目は、`<-` ではなく `=` で書くのが一般的です。
+    #   `変数 <- 式` は、左が変数だけなので必ず一致します（失敗して else に行くことがありません）。
+    #   with の中では、必ず成功する束縛を `変数 = 式` と書けます。こう書くと「失敗しうるのは1行目だけ」と読み手に伝わります。
+    with [_ | _] = empties <- empty_positions(board),
+         position <- Enum.random(empties),
+         value <- if(:rand.uniform(10) == 1, do: 4, else: 2) do
+      put_tile(board, position, value)
+    else
+      [] ->
+        board
+    end
   end
 
   @doc """
@@ -164,8 +147,9 @@ defmodule Game2048.Board do
   """
   @spec new() :: t()
   def new do
-    # TODO(human): 【ステップ3-4】empty/0 で作った盤面に、add_random_tile/1 を2回使ってタイルを2つ置いてください。
-    Game2048.todo!("ステップ3-4 new/0", [])
+    empty()
+    |> add_random_tile()
+    |> add_random_tile()
   end
 
   # ---- ステップ4: 勝ち負けの判定に使う関数 ----
