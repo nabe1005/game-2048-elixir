@@ -129,12 +129,10 @@ defmodule Game2048.Board do
     # end
 
     # `[_ | _] = empties` は「要素が1つ以上のリスト」に一致させつつ、全体を empties に入れるパターンです。
-    # TODO(human): 【改善】with の2行目と3行目は、`<-` ではなく `=` で書くのが一般的です。
-    #   `変数 <- 式` は、左が変数だけなので必ず一致します（失敗して else に行くことがありません）。
-    #   with の中では、必ず成功する束縛を `変数 = 式` と書けます。こう書くと「失敗しうるのは1行目だけ」と読み手に伝わります。
+    # with の中では、失敗しうる行を `<-`、必ず成功する束縛を `=` で書き分けます。
     with [_ | _] = empties <- empty_positions(board),
-         position <- Enum.random(empties),
-         value <- if(:rand.uniform(10) == 1, do: 4, else: 2) do
+         position = Enum.random(empties),
+         value = if(:rand.uniform(10) == 1, do: 4, else: 2) do
       put_tile(board, position, value)
     else
       [] ->
