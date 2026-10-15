@@ -20,9 +20,8 @@ defmodule Game2048.Game do
   """
   @spec new() :: t()
   def new do
-    # TODO(human): 【ステップ4-3】Board.new/0 の盤面で、ゲームを作ってください。
-    #   ヒント: 下の from_board/1 を使い回せます。
-    Game2048.todo!("ステップ4-3 new/0", [])
+    # 状態の決め方は from_board/1 にまとめてあるので、盤面を渡すだけです。
+    from_board(Board.new())
   end
 
   @doc """
@@ -31,8 +30,7 @@ defmodule Game2048.Game do
   """
   @spec from_board(Board.t()) :: t()
   def from_board(board) do
-    # TODO(human): 【ステップ4-4】board と、status_of(board) で決めた状態を持つ Game 構造体を返してください。
-    Game2048.todo!("ステップ4-4 from_board/1", [board])
+    %__MODULE__{board: board, status: status_of(board)}
   end
 
   @doc """
@@ -44,14 +42,13 @@ defmodule Game2048.Game do
   """
   @spec status_of(Board.t()) :: status()
   def status_of(board) do
-    # TODO(human): 【ステップ4-5】上の3つのルールで状態を返してください。
-    #
-    # ■ ヒント
-    #   - マインスイーパーの next_status/2 で使った `cond` が使えます。上から順に条件を調べる構文です。
-    #   - 勝ちの判定を先に書きます（2048 を作ったのと同時に動けなくなっても、勝ちにするため）。
-    #   - モジュール属性 @goal を使ってください。
-    #   - 「動かせない」は、Board.can_move?/1 の結果の否定（not）です。
-    Game2048.todo!("ステップ4-5 status_of/1", [board, @goal])
+    # cond は上から順に条件を調べ、最初に true になった節の値を返します。
+    # 勝ちの判定を先に置くことで、2048 を作ったのと同時に動けなくなっても勝ちになります。
+    cond do
+      Board.has_tile?(board, @goal) -> :won
+      not Board.can_move?(board) -> :lost
+      true -> :playing
+    end
   end
 
   @doc """
@@ -61,27 +58,23 @@ defmodule Game2048.Game do
   - プレイ中だが、どのタイルも動かないとき → `{:error, :no_change}`（新しいタイルも置きません）
   - 終わったゲームのとき → `{:error, :game_finished}`
   """
+  # 1つ目の節は「プレイ中の Game」だけに一致し、同時に盤面を変数 board に取り出しています。
+  # それ以外の Game（:won / :lost）は、2つ目の節に進みます。
   @spec move(t(), Board.direction()) :: {:ok, t()} | {:error, :no_change | :game_finished}
-  def move(game, direction) do
-    # TODO(human): 【ステップ4-6】この関数を、status で振り分ける関数節2つに書き換えてください。
-    #
-    # ■ 考え方
-    #   1つ目の節: status が :playing のとき
-    #     1. Board.move/2 で動かす
-    #     2. 元の盤面と同じなら {:error, :no_change}
-    #     3. 違えば、Board.add_random_tile/1 でタイルを置いて、status_of/1 で状態を決め直し、{:ok, 新しいゲーム}
-    #   2つ目の節: それ以外の Game のとき → {:error, :game_finished}
-    #
-    # ■ ヒント
-    #   - マインスイーパーの Game.reveal/2 の書き方を思い出してください。
-    #     `%__MODULE__{status: :playing} = game` で「プレイ中の Game」に一致させ、全体を game で受け取れます。
-    #   - 2.と3.の振り分けは、if でも case でも書けます。
-    #     case の節では、すでにある変数と同じ値かどうかを `^変数` で比べられます（ピン演算子）。
-    #       case Board.move(board, direction) do
-    #         ^board -> ...       # 元の board と同じ値なら一致
-    #         moved -> ...        # それ以外
-    #       end
-    #     `^` を付けないと「新しい変数 board に何でも入れる」意味になってしまうので注意です。
-    Game2048.todo!("ステップ4-6 move/2", [game, direction])
+  def move(%__MODULE__{board: board, status: :playing}, direction) do
+    # `^board` はピン演算子で、「元の board と同じ値なら一致」という意味です。
+    # 新しいゲームは from_board/1 で作るので、状態もそこで決め直されます。
+    case Board.move(board, direction) do
+      ^board ->
+        {:error, :no_change}
+
+      moved ->
+        moved
+        |> Board.add_random_tile()
+        |> from_board()
+        |> then(&{:ok, &1})
+    end
   end
+
+  def move(_game, _direction), do: {:error, :game_finished}
 end

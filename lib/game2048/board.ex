@@ -157,12 +157,8 @@ defmodule Game2048.Board do
   """
   @spec has_tile?(t(), pos_integer()) :: boolean()
   def has_tile?(board, value) do
-    # TODO(human): 【ステップ4-1】board のどこかに value があれば true を返してください。
-    #
-    # ■ 使う関数・演算子
-    #   List.flatten(list)      入れ子のリストを1段にします。  List.flatten([[1, 2], [3]]) #=> [1, 2, 3]
-    #   値 in list              list に値が含まれていれば true。Enum.member?(list, 値) と同じです。
-    Game2048.todo!("ステップ4-1 has_tile?/2", [board, value])
+    # List.flatten/1 で盤面を1段のリストにしてから、`in` で value が含まれるかを調べています。
+    value in List.flatten(board)
   end
 
   @doc """
@@ -170,16 +166,8 @@ defmodule Game2048.Board do
   """
   @spec can_move?(t()) :: boolean()
   def can_move?(board) do
-    # TODO(human): 【ステップ4-2】4つの方向のうち、どれか1つでも「動かすと盤面が変わる」なら true を返してください。
-    #
-    # ■ 使う関数
-    #   Enum.any?(list, fn 要素 -> 条件 end)
-    #     どれか1つの要素で条件が true なら true を返します（Enum.all? の「どれか1つ」版。Dart の any）。
-    #
-    # ■ ヒント
-    #   - 4つの方向のアトムをリストにして、Enum.any? に渡します。
-    #   - 「盤面が変わる」は、move/2 した結果と元の board を `!=` で比べれば分かります。
-    #     Elixir の `==` / `!=` は、リストの中身まで比べてくれます。
-    Game2048.todo!("ステップ4-2 can_move?/1", [board])
+    # 4つの方向のうち1つでも、move/2 の結果が元の board と違えば true です。
+    # `!=` はリストの中身まで比べるので、盤面が変わったかどうかがそのまま分かります。
+    Enum.any?([:left, :right, :up, :down], &(move(board, &1) != board))
   end
 end
