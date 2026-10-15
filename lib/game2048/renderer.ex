@@ -24,18 +24,9 @@ defmodule Game2048.Renderer do
   """
   @spec render(Board.t()) :: String.t()
   def render(board) do
-    # TODO(human): 【ステップ5-2】各行を1行の文字列にして、改行でつないでください。
-    #
-    # ■ 使う関数
-    #   Enum.map_join(list, 区切り文字, fn 要素 -> 文字列 end)
-    #     map してから join するのを1回で行います。マインスイーパーの Renderer でも使いました。
-    #       Enum.map_join([1, 2, 3], "-", fn n -> "#{n * 10}" end) #=> "10-20-30"
-    #
-    # ■ ヒント
-    #   - 「行のリスト → 改行でつなぐ」と「1行の中のマスのリスト → 区切りなしでつなぐ」の2段階です。
-    #     Enum.map_join を2回（外側と内側で）使うと書けます。
-    #   - 1マスの文字列は、下の cell/1 で作ります。
-    Game2048.todo!("ステップ5-2 render/1", [board])
+    # 外側の map_join で行を改行でつなぎ、内側の map_join で1行のマスを区切りなしでつないでいます。
+    # map_join/2 のように区切り文字を省くと、"" でつなぎます。
+    Enum.map_join(board, "\n", fn row -> Enum.map_join(row, &cell/1) end)
   end
 
   @doc """
@@ -47,17 +38,13 @@ defmodule Game2048.Renderer do
   """
   @spec cell(non_neg_integer()) :: String.t()
   def cell(value) do
-    # TODO(human): 【ステップ5-1】value を文字列にして、左を空白で埋めて 5 文字にしてください。0 は "." にします。
-    #
-    # ■ 使う関数
-    #   Integer.to_string(整数)                   整数を文字列にします。 Integer.to_string(16) #=> "16"
-    #   String.pad_leading(文字列, 長さ)           左を空白で埋めて、指定の長さにします。
-    #     String.pad_leading("16", 5) #=> "   16"
-    #
-    # ■ ヒント
-    #   - 「0 のときだけ "."」は、マインスイーパーの number_symbol/1 のように、
-    #     値を直接書いた関数節で振り分けられます。補助の defp 関数を作ってもかまいません。
-    #   - 幅はモジュール属性 @cell_width を使ってください。
-    Game2048.todo!("ステップ5-1 cell/1", [value, @cell_width])
+    # 「何の記号にするか」は symbol/1 に任せて、ここでは幅をそろえることだけをしています。
+    value
+    |> symbol()
+    |> String.pad_leading(@cell_width)
   end
+
+  # マスに表示する記号。0（空きマス）は "."、それ以外は数字をそのまま文字列にします。
+  defp symbol(0), do: "."
+  defp symbol(value), do: Integer.to_string(value)
 end
